@@ -2,170 +2,154 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>Travel Architect v6.0</title>
+    <title>Travel Architect v7.0</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         :root { 
-            --bg: #111827; --card: #1f2937; --input: #374151;
-            --primary: #3b82f6; --text: #f9fafb; --text-gray: #9ca3af;
+            --bg: #111827; --card: #1f2937; --input-bg: #374151;
+            --primary: #3b82f6; --text: #f3f4f6; --gray: #9ca3af;
             --danger: #ef4444; --success: #10b981;
             --transport-bg: #451a03; --transport-border: #d97706;
         }
         * { box-sizing: border-box; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
         /* --- 頂部導航 --- */
         #navbar {
             height: 60px; background: #0f172a; border-bottom: 1px solid #334155;
-            display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
-            z-index: 50;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 50;
         }
-        .nav-tabs { display: flex; gap: 5px; height: 100%; }
-        .nav-tab {
-            background: transparent; border: none; color: var(--text-gray);
-            padding: 0 20px; font-weight: bold; cursor: pointer; height: 100%;
-            border-bottom: 3px solid transparent; transition: 0.2s; font-size: 1rem;
+        .nav-btn {
+            background: transparent; border: none; color: var(--gray); font-size: 1rem;
+            padding: 0 15px; height: 60px; cursor: pointer; border-bottom: 3px solid transparent;
         }
-        .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
-        .nav-tab:hover { color: #fff; }
+        .nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(59,130,246,0.1); font-weight: bold; }
 
-        /* --- 主容器 --- */
+        /* --- 主畫面 --- */
         #main-container { flex: 1; display: flex; overflow: hidden; position: relative; }
 
-        /* 1. 行程視圖 */
+        /* 1. 行程區塊 */
         #view-itinerary { display: flex; width: 100%; height: 100%; }
         
-        /* 左側：垂直天數列表 */
+        /* 左側列表 */
         #itinerary-list { 
-            width: 500px; overflow-y: auto; padding: 20px; 
-            border-right: 1px solid #334155; background: var(--bg);
+            width: 450px; overflow-y: auto; padding: 15px; 
+            background: var(--bg); border-right: 1px solid #334155;
+            padding-bottom: 100px; /* 預留底部空間 */
         }
 
-        /* 每一天的區塊 */
+        /* 每一天容器 */
         .day-container {
-            background: #1e293b; border-radius: 12px; margin-bottom: 30px;
-            border: 1px solid #334155; overflow: hidden;
+            background: var(--card); border: 1px solid #374151; border-radius: 8px;
+            margin-bottom: 20px; overflow: hidden;
         }
         .day-header {
-            background: #0f172a; padding: 15px; border-bottom: 1px solid #334155;
-            display: flex; justify-content: space-between; align-items: center;
+            background: #111827; padding: 10px 15px; border-bottom: 1px solid #374151;
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
         }
-        .day-title { font-size: 1.1rem; font-weight: bold; color: var(--primary); }
-        .day-date-input {
-            background: #334155; border: 1px solid #475569; color: #fff;
-            padding: 4px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; cursor: pointer;
-        }
-
-        /* 拖曳區域 */
-        .sortable-area { min-height: 50px; padding: 10px; }
-
-        /* 項目卡片 */
-        .item-card {
-            background: #334155; padding: 12px; margin-bottom: 10px; border-radius: 6px;
-            display: flex; gap: 10px; align-items: center; cursor: grab; position: relative;
-            border-left: 4px solid var(--text-gray); transition: 0.2s;
-        }
-        .item-card:hover { transform: translateX(3px); background: #3f4c63; }
-        .item-card:active { cursor: grabbing; }
+        .day-header:hover { background: #1f2937; }
+        .day-title { font-weight: bold; color: var(--primary); font-size: 1.1rem; }
         
-        /* 交通卡片 */
+        .day-body { padding: 10px; min-height: 50px; }
+        .day-body.collapsed { display: none; }
+
+        /* 行程卡片 */
+        .item-card {
+            background: #2d3748; padding: 12px; margin-bottom: 8px; border-radius: 6px;
+            display: flex; gap: 10px; align-items: center; position: relative;
+            border-left: 4px solid #718096; cursor: grab;
+        }
+        .item-card:hover { filter: brightness(1.1); }
+        
         .item-card.type-transport {
-            background: var(--transport-bg); border-color: var(--transport-border);
-            border-left: 4px solid var(--transport-border);
+            background: var(--transport-bg); border-left-color: var(--transport-border);
         }
 
-        /* 新增按鈕 (在每一天下面) */
-        .add-btn-block {
-            width: 100%; background: #1e293b; border: none; border-top: 1px solid #334155;
-            padding: 12px; color: var(--text-gray); cursor: pointer; font-weight: bold;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: 0.2s;
+        /* 新增按鈕 (大) */
+        .btn-add-block {
+            width: 100%; padding: 12px; background: #374151; border: none; color: #d1d5db;
+            cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 5px;
+            transition: 0.2s; border-top: 1px solid #4b5563;
         }
-        .add-btn-block:hover { background: #2d3748; color: var(--primary); }
+        .btn-add-block:hover { background: #4b5563; color: #fff; }
 
-        /* 右側：地圖 */
-        #map-wrapper { flex: 1; height: 100%; }
+        /* 右側地圖 */
+        #map-wrapper { flex: 1; height: 100%; position: relative; }
         #map { width: 100%; height: 100%; }
 
-        /* 2. 記帳視圖 */
-        #view-budget { display: none; width: 100%; height: 100%; flex-direction: column; padding: 20px; overflow-y: auto; align-items: center; }
-        
-        .budget-panel {
-            width: 100%; max-width: 800px; background: var(--card); 
-            border-radius: 12px; padding: 20px; border: 1px solid #334155;
-        }
-        .budget-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .budget-table th { text-align: left; color: var(--text-gray); padding: 10px; border-bottom: 1px solid #4b5563; }
-        .budget-table td { padding: 12px 10px; border-bottom: 1px solid #374151; }
-        .amount-text { color: var(--success); font-family: monospace; font-weight: bold; }
+        /* 2. 記帳區塊 */
+        #view-budget { display: none; width: 100%; height: 100%; flex-direction: column; padding: 20px; align-items: center; overflow-y: auto; }
+        .budget-box { width: 100%; max-width: 800px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #374151; margin-bottom: 20px; }
 
-        /* 通用元件 */
+        /* 輸入框樣式 (標準化) */
         input, select {
-            background: var(--input); border: 1px solid #4b5563; color: #fff;
-            padding: 10px; border-radius: 6px; width: 100%; outline: none;
+            width: 100%; padding: 12px; margin-bottom: 10px;
+            background: #000; border: 1px solid #4b5563; color: #fff;
+            border-radius: 6px; font-size: 1rem; outline: none;
         }
         input:focus { border-color: var(--primary); }
-        label { display: block; font-size: 0.85rem; color: var(--text-gray); margin-bottom: 4px; }
-        
-        .btn { padding: 10px 15px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-        .btn-primary { background: var(--primary); color: #fff; }
-        .btn-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
-        .btn-sm { padding: 4px 8px; font-size: 0.8rem; }
+        label { display: block; margin-bottom: 5px; color: var(--gray); font-size: 0.9rem; }
 
-        /* 彈窗 */
+        /* 按鈕樣式 */
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-danger { background: rgba(239,68,68,0.2); color: var(--danger); }
+        .btn-sm { padding: 5px 10px; font-size: 0.85rem; }
+
+        /* 彈窗 (Modal) */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 100; display: none;
+            background: rgba(0,0,0,0.85); z-index: 999; display: none;
             justify-content: center; align-items: center;
         }
-        .modal-box {
-            background: #1f2937; padding: 25px; border-radius: 12px; width: 400px;
-            border: 1px solid #374151; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        .modal-content {
+            background: #1f2937; width: 90%; max-width: 450px; padding: 25px;
+            border-radius: 12px; border: 1px solid #4b5563; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
         /* 類型切換 */
-        .type-selector { display: flex; background: #111827; padding: 4px; border-radius: 8px; margin-bottom: 15px; }
-        .type-opt { flex: 1; text-align: center; padding: 8px; cursor: pointer; border-radius: 6px; color: var(--text-gray); font-size: 0.9rem; }
-        .type-opt.active { background: var(--primary); color: #fff; font-weight: bold; }
+        .type-tabs { display: flex; margin-bottom: 15px; background: #111827; padding: 5px; border-radius: 8px; }
+        .type-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; color: var(--gray); border-radius: 6px; }
+        .type-tab.active { background: var(--primary); color: #fff; font-weight: bold; }
 
         /* 大廳 */
-        #view-lobby { position: fixed; width: 100%; height: 100%; background: var(--bg); z-index: 200; display: flex; flex-direction: column; align-items: center; padding-top: 50px; }
-        .trip-card { width: 300px; background: var(--card); padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #374151; cursor: pointer; }
+        #view-lobby { position: fixed; width: 100%; height: 100%; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; padding-top: 50px; }
+        .trip-item { width: 320px; background: var(--card); padding: 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; border: 1px solid #374151; }
+        .trip-item:hover { border-color: var(--primary); }
+
     </style>
 </head>
 <body>
 
     <div id="view-lobby">
-        <h1 style="color:var(--primary); margin-bottom:10px;">Travel Architect v6</h1>
-        <div id="user-info" style="color:#6b7280; margin-bottom:30px;">Guest</div>
+        <h1 style="color:var(--primary)">Travel Architect v7.0</h1>
+        <div id="user-status" style="color:var(--gray); margin-bottom:30px;">載入中...</div>
         
-        <div style="width:300px">
-            <button class="btn btn-primary" style="width:100%; margin-bottom:10px;" onclick="createTrip()">+ 建立新旅程</button>
+        <div style="width:320px">
+            <button class="btn btn-primary" style="width:100%; margin-bottom:15px;" onclick="createNewTrip()">+ 建立新旅程</button>
             <div style="display:flex; gap:5px; margin-bottom:20px;">
-                <input id="join-code" placeholder="輸入邀請碼 ID">
+                <input id="join-code" placeholder="輸入邀請碼 ID" style="margin:0;">
                 <button class="btn btn-primary" onclick="joinTrip()">加入</button>
             </div>
-            <div id="trip-list"></div>
+            <div id="lobby-list"></div>
         </div>
     </div>
 
     <div id="navbar" style="display:none;">
-        <div style="display:flex; align-items:center; gap:15px;">
-            <button class="btn btn-sm" style="background:#334155; color:#fff;" onclick="backToLobby()"><i class="fas fa-chevron-left"></i> 列表</button>
-            <div style="font-weight:bold; font-size:1.1rem;" id="nav-trip-title">旅程標題</div>
-            <span style="font-size:0.8rem; color:#64748b; cursor:pointer;" onclick="copyId()" id="nav-trip-id">ID</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <button class="btn-sm btn-danger" onclick="backToLobby()"><i class="fas fa-arrow-left"></i> 離開</button>
+            <span id="nav-trip-title" style="font-weight:bold;">旅程</span>
+            <span id="nav-trip-id" style="font-size:0.8rem; color:var(--gray); cursor:pointer;" onclick="copyId()">ID</span>
         </div>
-        <div class="nav-tabs">
-            <button class="nav-tab active" onclick="switchTab('itinerary')"><i class="fas fa-map-marked-alt"></i> 行程規劃</button>
-            <button class="nav-tab" onclick="switchTab('budget')"><i class="fas fa-wallet"></i> 記帳本</button>
+        <div style="display:flex;">
+            <button class="nav-btn active" onclick="switchTab('itinerary')">行程</button>
+            <button class="nav-btn" onclick="switchTab('budget')">記帳</button>
         </div>
-        <div>
-            </div>
     </div>
 
     <div id="main-container" style="display:none;">
@@ -174,116 +158,102 @@
             <div id="itinerary-list">
                 <div id="days-wrapper">
                     </div>
-                <button class="btn" style="width:100%; background:#334155; color:#fff; padding:15px; margin-top:20px;" onclick="addDay()">
-                    + 新增天數 (Add Day)
+                <button class="btn" style="width:100%; background:#374151; color:#fff; padding:15px; margin-top:20px;" onclick="addDay()">
+                    + 新增一天 (Add Day)
                 </button>
-                <div style="height:100px;"></div> </div>
-
+            </div>
             <div id="map-wrapper">
                 <div id="map"></div>
             </div>
         </div>
 
         <div id="view-budget">
-            <div class="budget-panel">
-                <h3 style="margin-top:0; border-bottom:1px solid #374151; padding-bottom:10px;">新增支出</h3>
-                <div style="display:flex; gap:10px; margin-bottom:10px;">
-                    <div style="flex:1;">
+            <div class="budget-box">
+                <h3 style="margin-top:0; border-bottom:1px solid #4b5563; padding-bottom:10px;">記一筆</h3>
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1">
                         <label>日期</label>
                         <input type="date" id="bud-date">
                     </div>
-                    <div style="flex:2;">
-                        <label>項目名稱</label>
-                        <input type="text" id="bud-item" placeholder="例: 午餐">
+                    <div style="flex:2">
+                        <label>項目</label>
+                        <input type="text" id="bud-item" placeholder="早餐, 車票...">
                     </div>
                 </div>
-                <div style="display:flex; gap:10px; margin-bottom:15px;">
-                    <div style="flex:1;">
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1">
                         <label>金額</label>
-                        <input type="number" id="bud-cost" placeholder="$$$">
+                        <input type="number" id="bud-cost" placeholder="$">
                     </div>
-                    <div style="flex:1;">
+                    <div style="flex:1">
                         <label>分類</label>
                         <select id="bud-cat">
                             <option value="food">🍜 食物</option>
                             <option value="transport">🚗 交通</option>
                             <option value="shop">🛍️ 購物</option>
                             <option value="stay">🏨 住宿</option>
-                            <option value="ticket">🎫 門票</option>
+                            <option value="other">✨ 其他</option>
                         </select>
                     </div>
-                    <div style="display:flex; align-items:flex-end;">
-                        <button class="btn btn-primary" onclick="addExpense()">記一筆</button>
-                    </div>
                 </div>
+                <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addExpense()">確認新增</button>
             </div>
 
-            <div class="budget-panel" style="margin-top:20px; flex:1;">
+            <div class="budget-box" style="flex:1;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h3>支出明細</h3>
-                    <div style="font-size:1.2rem; font-weight:bold; color:var(--success);" id="budget-total">總計: $0</div>
+                    <h3 style="color:var(--success)" id="budget-total">Total: $0</h3>
                 </div>
-                <table class="budget-table">
-                    <thead>
-                        <tr>
-                            <th>日期</th>
-                            <th>項目</th>
-                            <th>分類</th>
-                            <th>金額</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="budget-tbody">
-                        </tbody>
-                </table>
+                <div id="budget-list" style="margin-top:10px;"></div>
             </div>
         </div>
     </div>
 
     <div id="modal-add" class="modal-overlay">
-        <div class="modal-box">
+        <div class="modal-content">
             <h3 style="margin-top:0; color:#fff;">新增行程</h3>
             
-            <div class="type-selector">
-                <div class="type-opt active" id="type-place" onclick="setType('place')">📍 一般/景點</div>
-                <div class="type-opt" id="type-transport" onclick="setType('transport')">🚄 交通移動</div>
+            <div class="type-tabs">
+                <div class="type-tab active" id="tab-place" onclick="toggleType('place')">📍 一般/景點</div>
+                <div class="type-tab" id="tab-transport" onclick="toggleType('transport')">🚄 交通移動</div>
             </div>
 
             <div id="form-place">
-                <div style="margin-bottom:10px;">
-                    <label>名稱</label>
-                    <input id="inp-name" placeholder="例: 東京鐵塔">
-                </div>
-                <div style="display:flex; gap:10px; margin-bottom:10px;">
-                    <div style="flex:1;">
+                <label>名稱</label>
+                <input id="inp-name" placeholder="輸入地點名稱 (例: 淺草寺)">
+                
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1">
                         <label>時間</label>
                         <input type="time" id="inp-time">
                     </div>
                     <div style="flex:1; display:flex; align-items:flex-end;">
-                        <button class="btn" style="background:#374151; color:#fff; width:100%;" onclick="searchLoc()">🔍 搜尋定位</button>
+                        <button class="btn" style="width:100%; background:#374151; color:#fff; height:46px;" onclick="searchLoc()">
+                            <i class="fas fa-search"></i> 定位
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div id="form-transport" style="display:none;">
-                <div style="display:flex; gap:10px; margin-bottom:10px;">
-                    <div style="flex:1;">
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1">
                         <label>出發地</label>
-                        <input id="trans-from" placeholder="例: 東京">
+                        <input id="trans-from" placeholder="例: 京都">
                     </div>
-                    <div style="flex:1;">
+                    <div style="flex:1">
                         <label>目的地</label>
                         <input id="trans-to" placeholder="例: 大阪">
                     </div>
                 </div>
-                <div style="display:flex; gap:10px; margin-bottom:10px;">
-                    <div style="flex:1;">
-                        <label>交通方式/備註</label>
-                        <input id="trans-desc" placeholder="例: 新幹線">
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1">
+                        <label>方式/備註</label>
+                        <input id="trans-desc" placeholder="例: JR電車">
                     </div>
-                    <div style="flex:1;">
+                    <div style="flex:1">
                         <label>耗時 (分鐘)</label>
-                        <input type="number" id="trans-dur">
+                        <input type="number" id="trans-dur" placeholder="30">
                     </div>
                 </div>
             </div>
@@ -297,7 +267,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -319,22 +289,22 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        let user = null;
-        let tripId = null;
+        let currentUser = null;
+        let currentTripId = null;
         let tripData = null;
         let map = null;
         let markers = {};
         
-        // Modal State
-        let targetDayIndex = 0;
+        // UI State
+        let targetDayIdx = 0;
         let addType = 'place';
         let tempLoc = null;
 
         // --- Auth ---
         onAuthStateChanged(auth, (u) => {
             if (u) {
-                user = u;
-                document.getElementById('user-info').innerText = `Hi, ${u.displayName}`;
+                currentUser = u;
+                document.getElementById('user-status').innerText = `已登入: ${u.displayName}`;
                 loadLobby();
             } else {
                 signInWithPopup(auth, provider);
@@ -354,52 +324,54 @@
             document.getElementById('navbar').style.display = 'none';
             document.getElementById('main-container').style.display = 'none';
 
-            const q = query(collection(db, "trips"), where("members", "array-contains", user.uid));
+            const q = query(collection(db, "trips"), where("members", "array-contains", currentUser.uid));
             onSnapshot(q, (snap) => {
-                const list = document.getElementById('trip-list');
+                const list = document.getElementById('lobby-list');
                 list.innerHTML = '';
                 snap.forEach(d => {
                     const data = d.data();
                     const el = document.createElement('div');
-                    el.className = 'trip-card';
-                    el.innerHTML = `<b>${data.name}</b><br><small>${data.days.length} 天</small>`;
+                    el.className = 'trip-item';
+                    el.innerHTML = `<b>${data.name}</b> <span style="float:right">${data.days.length} 天</span>`;
                     el.onclick = () => loadTrip(d.id);
                     list.appendChild(el);
                 });
             });
         }
 
-        window.createTrip = async () => {
+        window.createNewTrip = async () => {
             const name = prompt("旅程名稱:");
             if(!name) return;
-            const newId = 'TRIP-' + Math.random().toString(36).substr(2,6).toUpperCase();
+            const newId = 'TRIP-' + generateSafeId();
             await setDoc(doc(db, "trips", newId), {
-                name, members: [user.uid],
-                days: [{ id: 'd1', date: '', items: [] }],
+                name, members: [currentUser.uid],
+                days: [{ id: generateSafeId(), date: '', items: [] }],
                 expenses: []
             });
         };
 
         window.joinTrip = async () => {
             const code = document.getElementById('join-code').value;
-            if(!code) return;
+            if(!code) return alert("請輸入 ID");
             const ref = doc(db, "trips", code);
             const snap = await getDoc(ref);
             if(snap.exists()) {
-                await updateDoc(ref, { members: arrayUnion(user.uid) });
+                await updateDoc(ref, { members: arrayUnion(currentUser.uid) });
                 loadTrip(code);
+            } else {
+                alert("找不到此旅程");
             }
         };
 
         // --- Trip Logic ---
         function loadTrip(id) {
-            tripId = id;
+            currentTripId = id;
             document.getElementById('view-lobby').style.display = 'none';
             document.getElementById('navbar').style.display = 'flex';
             document.getElementById('main-container').style.display = 'flex';
             document.getElementById('nav-trip-id').innerText = `ID: ${id}`;
             initMap();
-            map.invalidateSize();
+            setTimeout(() => map.invalidateSize(), 500); // Fix map size
 
             onSnapshot(doc(db, "trips", id), (snap) => {
                 if(!snap.exists()) return loadLobby();
@@ -410,51 +382,54 @@
             });
         }
 
-        window.backToLobby = () => { tripId = null; loadLobby(); };
+        window.backToLobby = () => { currentTripId = null; loadLobby(); };
+        
         window.switchTab = (tab) => {
-            document.querySelectorAll('.nav-tab').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('#main-container > div').forEach(e => e.style.display = 'none');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('view-itinerary').style.display = 'none';
+            document.getElementById('view-budget').style.display = 'none';
             
             if(tab === 'itinerary') {
                 document.getElementById('view-itinerary').style.display = 'flex';
-                document.querySelector('.nav-tabs button:nth-child(1)').classList.add('active');
+                document.querySelectorAll('.nav-btn')[0].classList.add('active');
             } else {
                 document.getElementById('view-budget').style.display = 'flex';
-                document.querySelector('.nav-tabs button:nth-child(2)').classList.add('active');
+                document.querySelectorAll('.nav-btn')[1].classList.add('active');
             }
         };
 
-        // --- Itinerary Render (Vertical Stack) ---
+        // --- Itinerary Render ---
         function renderItinerary() {
-            const container = document.getElementById('days-wrapper');
-            container.innerHTML = '';
+            const wrapper = document.getElementById('days-wrapper');
+            wrapper.innerHTML = '';
             
             // Clear markers
             Object.values(markers).forEach(m => map.removeLayer(m));
             markers = {};
 
             tripData.days.forEach((day, idx) => {
-                const dayEl = document.createElement('div');
-                dayEl.className = 'day-container';
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day-container';
                 
                 // Day Header
-                dayEl.innerHTML = `
-                    <div class="day-header">
-                        <div class="day-title">Day ${idx + 1}</div>
-                        <div>
-                            <input type="date" class="day-date-input" value="${day.date || ''}" onchange="updateDayDate(${idx}, this.value)">
-                            <button class="btn btn-danger btn-sm" onclick="deleteDay(${idx})">✕</button>
+                dayDiv.innerHTML = `
+                    <div class="day-header" onclick="toggleDay(${idx})">
+                        <div class="day-title">Day ${idx+1}</div>
+                        <div onclick="event.stopPropagation()">
+                            <input type="date" class="day-date-input" value="${day.date||''}" onchange="updateDate(${idx}, this.value)">
+                            <button class="btn-sm btn-danger" onclick="deleteDay(${idx})">✕</button>
                         </div>
                     </div>
-                    <div class="sortable-area" id="day-list-${idx}" data-idx="${idx}"></div>
-                    <button class="add-btn-block" onclick="openAddModal(${idx})">
-                        <i class="fas fa-plus-circle"></i> 新增行程到 Day ${idx+1}
+                    <div class="day-body" id="day-body-${idx}">
+                        <div class="sortable-list" data-idx="${idx}"></div>
+                    </div>
+                    <button class="btn-add-block" onclick="openModal(${idx})">
+                        <i class="fas fa-plus"></i> 新增行程
                     </button>
                 `;
 
-                const listArea = dayEl.querySelector('.sortable-area');
+                const list = dayDiv.querySelector('.sortable-list');
                 
-                // Items
                 day.items.forEach(item => {
                     const card = document.createElement('div');
                     card.dataset.id = item.id;
@@ -462,22 +437,21 @@
                     if(item.type === 'transport') {
                         card.className = 'item-card type-transport';
                         card.innerHTML = `
-                            <i class="fas fa-car" style="color:#d97706"></i>
-                            <div style="flex:1;">
-                                <div style="font-weight:bold;">${item.from} ➔ ${item.to}</div>
-                                <div style="font-size:0.8rem; opacity:0.7;">${item.desc || '移動'} • ${item.dur || 0}分</div>
+                            <i class="fas fa-car" style="color:#f59e0b"></i>
+                            <div style="flex:1">
+                                <b>${item.from} ➔ ${item.to}</b>
+                                <div style="font-size:0.8rem; opacity:0.8">${item.desc||''} (${item.dur||0}分)</div>
                             </div>
-                            <i class="fas fa-times" onclick="deleteItem(${idx}, '${item.id}')" style="cursor:pointer; opacity:0.5;"></i>
+                            <i class="fas fa-trash" style="cursor:pointer; opacity:0.5" onclick="delItem(${idx}, '${item.id}')"></i>
                         `;
                     } else {
                         card.className = 'item-card';
                         card.innerHTML = `
-                            <div style="font-family:monospace; color:var(--primary); font-size:0.9rem;">${item.time || '--:--'}</div>
-                            <div style="flex:1; font-weight:bold;">${item.name}</div>
-                            <i class="fas fa-times" onclick="deleteItem(${idx}, '${item.id}')" style="cursor:pointer; opacity:0.5;"></i>
+                            <div style="font-family:monospace; color:var(--primary)">${item.time||'--:--'}</div>
+                            <div style="flex:1"><b>${item.name}</b></div>
+                            <i class="fas fa-trash" style="cursor:pointer; opacity:0.5" onclick="delItem(${idx}, '${item.id}')"></i>
                         `;
                         
-                        // Map marker
                         if(item.lat) {
                             card.onclick = (e) => {
                                 if(e.target.tagName !== 'I') {
@@ -489,54 +463,50 @@
                             markers[item.id] = m;
                         }
                     }
-                    listArea.appendChild(card);
+                    list.appendChild(card);
                 });
 
-                // Init Sortable (Drag between days)
-                new Sortable(listArea, {
-                    group: 'shared-days', // Allow dragging between lists
-                    animation: 150,
-                    onEnd: handleDragEnd
-                });
-
-                container.appendChild(dayEl);
+                new Sortable(list, { group: 'days', animation: 150, onEnd: handleSort });
+                wrapper.appendChild(dayDiv);
             });
         }
 
-        // --- Data Operations ---
-        window.updateDayDate = async (idx, date) => {
-            tripData.days[idx].date = date;
+        // --- Data Handling ---
+        window.toggleDay = (idx) => {
+            document.getElementById(`day-body-${idx}`).classList.toggle('collapsed');
+        };
+
+        window.updateDate = async (idx, val) => {
+            tripData.days[idx].date = val;
             await saveTrip();
         };
 
         window.addDay = async () => {
-            tripData.days.push({ id: crypto.randomUUID(), date: '', items: [] });
+            tripData.days.push({ id: generateSafeId(), date: '', items: [] });
             await saveTrip();
         };
 
         window.deleteDay = async (idx) => {
-            if(confirm("刪除這整天？")) {
+            if(confirm("確定刪除這整天？")) {
                 tripData.days.splice(idx, 1);
                 await saveTrip();
             }
         };
 
-        window.deleteItem = async (dayIdx, itemId) => {
+        window.delItem = async (dayIdx, itemId) => {
             if(confirm("刪除？")) {
                 tripData.days[dayIdx].items = tripData.days[dayIdx].items.filter(i => i.id !== itemId);
                 await saveTrip();
             }
         };
 
-        async function handleDragEnd() {
-            // Reconstruct data from DOM (Robust way for cross-list sorting)
+        async function handleSort() {
             const newDays = [];
-            document.querySelectorAll('.sortable-area').forEach((area, dIdx) => {
+            document.querySelectorAll('.sortable-list').forEach((list, dIdx) => {
                 const oldDay = tripData.days[dIdx];
                 const newItems = [];
-                area.querySelectorAll('.item-card').forEach(card => {
+                list.querySelectorAll('.item-card').forEach(card => {
                     const id = card.dataset.id;
-                    // Find item in entire trip data (could be moved from another day)
                     let found = null;
                     tripData.days.forEach(d => {
                         const m = d.items.find(i => i.id === id);
@@ -550,29 +520,23 @@
             await saveTrip();
         }
 
-        async function saveTrip() {
-            await updateDoc(doc(db, "trips", tripId), { 
-                days: tripData.days,
-                expenses: tripData.expenses || []
-            });
-        }
-
-        // --- Modal Logic ---
-        window.openAddModal = (dayIdx) => {
-            targetDayIndex = dayIdx;
+        // --- Modal & Add ---
+        window.openModal = (idx) => {
+            targetDayIdx = idx;
             document.getElementById('modal-add').style.display = 'flex';
-            tempLoc = null;
-            // Clear inputs
+            // Reset inputs
             document.getElementById('inp-name').value = '';
             document.getElementById('inp-time').value = '';
             document.getElementById('trans-from').value = '';
+            tempLoc = null;
         };
+
         window.closeModal = () => document.getElementById('modal-add').style.display = 'none';
 
-        window.setType = (type) => {
+        window.toggleType = (type) => {
             addType = type;
-            document.querySelectorAll('.type-opt').forEach(e => e.classList.remove('active'));
-            document.getElementById(`type-${type}`).classList.add('active');
+            document.querySelectorAll('.type-tab').forEach(e => e.classList.remove('active'));
+            document.getElementById(`tab-${type}`).classList.add('active');
             
             document.getElementById('form-place').style.display = type === 'place' ? 'block' : 'none';
             document.getElementById('form-transport').style.display = type === 'transport' ? 'block' : 'none';
@@ -581,85 +545,102 @@
         window.searchLoc = async () => {
             const name = document.getElementById('inp-name').value;
             if(!name) return;
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}`);
-            const data = await res.json();
-            if(data.length > 0) {
-                tempLoc = { lat: data[0].lat, lng: data[0].lon };
-                alert(`已定位: ${name}`);
-            } else { alert("找不到地點"); }
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}`);
+                const data = await res.json();
+                if(data.length > 0) {
+                    tempLoc = { lat: data[0].lat, lng: data[0].lon };
+                    alert("已定位");
+                } else { alert("找不到"); }
+            } catch(e) { alert("搜尋失敗"); }
         };
 
         window.confirmAdd = async () => {
-            const newItem = { id: crypto.randomUUID(), type: addType };
-            if(addType === 'place') {
-                newItem.name = document.getElementById('inp-name').value;
-                newItem.time = document.getElementById('inp-time').value;
-                if(tempLoc) { newItem.lat = tempLoc.lat; newItem.lng = tempLoc.lng; }
-                if(!newItem.name) return alert("請輸入名稱");
-            } else {
-                newItem.from = document.getElementById('trans-from').value;
-                newItem.to = document.getElementById('trans-to').value;
-                newItem.desc = document.getElementById('trans-desc').value;
-                newItem.dur = document.getElementById('trans-dur').value;
-                if(!newItem.from) return alert("請輸入出發地");
-            }
+            try {
+                const newItem = { id: generateSafeId(), type: addType };
+                
+                if(addType === 'place') {
+                    newItem.name = document.getElementById('inp-name').value;
+                    newItem.time = document.getElementById('inp-time').value;
+                    if(tempLoc) { newItem.lat = tempLoc.lat; newItem.lng = tempLoc.lng; }
+                    if(!newItem.name) return alert("請輸入名稱");
+                } else {
+                    newItem.from = document.getElementById('trans-from').value;
+                    newItem.to = document.getElementById('trans-to').value;
+                    newItem.desc = document.getElementById('trans-desc').value;
+                    newItem.dur = document.getElementById('trans-dur').value;
+                    if(!newItem.from) return alert("請輸入出發地");
+                }
 
-            tripData.days[targetDayIndex].items.push(newItem);
-            await saveTrip();
-            closeModal();
+                tripData.days[targetDayIdx].items.push(newItem);
+                await saveTrip();
+                closeModal();
+            } catch(e) {
+                alert("新增失敗: " + e.message);
+            }
         };
 
-        // --- Budget Logic ---
-        // Auto-set today's date
+        // --- Budget ---
         window.addExpense = async () => {
-            const date = document.getElementById('bud-date').value;
+            const date = document.getElementById('bud-date').value || new Date().toISOString().split('T')[0];
             const item = document.getElementById('bud-item').value;
             const cost = parseInt(document.getElementById('bud-cost').value);
             const cat = document.getElementById('bud-cat').value;
             
-            if(!item || !cost) return;
+            if(!item || !cost) return alert("請輸入完整");
 
-            tripData.expenses.push({ id: Date.now(), date, item, cost, cat });
+            tripData.expenses.push({ id: generateSafeId(), date, item, cost, cat });
             await saveTrip();
             
             document.getElementById('bud-item').value = '';
             document.getElementById('bud-cost').value = '';
         };
 
+        function renderBudget() {
+            const list = document.getElementById('budget-list');
+            list.innerHTML = '';
+            let total = 0;
+            const mapCat = { food: '🍜', transport: '🚗', shop: '🛍️', stay: '🏨', other: '✨' };
+
+            (tripData.expenses || []).forEach(ex => {
+                total += ex.cost;
+                const div = document.createElement('div');
+                div.style.cssText = "display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #374151; align-items:center;";
+                div.innerHTML = `
+                    <div>
+                        <span style="color:var(--gray); font-size:0.8rem; margin-right:10px;">${ex.date}</span>
+                        <span>${mapCat[ex.cat]||''} ${ex.item}</span>
+                    </div>
+                    <div>
+                        <span style="color:var(--success); font-weight:bold; margin-right:10px;">$${ex.cost}</span>
+                        <i class="fas fa-trash" style="cursor:pointer; color:var(--danger)" onclick="delExpense('${ex.id}')"></i>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+            document.getElementById('budget-total').innerText = `Total: $${total}`;
+        }
+
         window.delExpense = async (id) => {
-            if(confirm("刪除此筆帳？")) {
+            if(confirm("刪除？")) {
                 tripData.expenses = tripData.expenses.filter(e => e.id !== id);
                 await saveTrip();
             }
         };
 
-        function renderBudget() {
-            // Set date to today if empty
-            if(!document.getElementById('bud-date').value) {
-                document.getElementById('bud-date').value = new Date().toISOString().split('T')[0];
-            }
+        // --- Utils ---
+        function generateSafeId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
 
-            const tbody = document.getElementById('budget-tbody');
-            tbody.innerHTML = '';
-            let total = 0;
-            const cats = { food: '🍜', transport: '🚗', shop: '🛍️', stay: '🏨', ticket: '🎫' };
-
-            (tripData.expenses || []).forEach(ex => {
-                total += ex.cost;
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${ex.date || '-'}</td>
-                    <td>${ex.item}</td>
-                    <td>${cats[ex.cat] || ''}</td>
-                    <td class="amount-text">$${ex.cost}</td>
-                    <td><button class="btn btn-danger btn-sm" onclick="delExpense(${ex.id})">✕</button></td>
-                `;
-                tbody.appendChild(tr);
+        async function saveTrip() {
+            await updateDoc(doc(db, "trips", currentTripId), { 
+                days: tripData.days,
+                expenses: tripData.expenses || []
             });
-            document.getElementById('budget-total').innerText = `總計: $${total}`;
         }
         
-        window.copyId = () => navigator.clipboard.writeText(tripId).then(()=>alert("已複製"));
+        window.copyId = () => navigator.clipboard.writeText(currentTripId).then(()=>alert("已複製"));
 
     </script>
 </body>
