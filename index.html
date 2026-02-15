@@ -2,162 +2,206 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>Travel Architect v2.0</title>
+    <title>Travel Architect v3.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root { --bg: #0f172a; --panel: #1e293b; --accent: #38bdf8; --text: #f1f5f9; --danger: #ef4444; --success: #22c55e; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100vh; display: flex; overflow: hidden; }
-
-        /* --- Tabs 分頁 --- */
-        .sidebar-tabs { display: flex; background: #0f172a; border-bottom: 1px solid #334155; }
-        .tab-btn { flex: 1; padding: 15px; background: transparent; color: #64748b; border: none; cursor: pointer; font-weight: bold; border-bottom: 2px solid transparent; transition: 0.2s; }
-        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: #1e293b; }
-        .tab-btn:hover { color: #fff; }
-
-        /* --- 主介面 --- */
-        #sidebar { width: 400px; background: var(--panel); border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 1000; box-shadow: 4px 0 15px rgba(0,0,0,0.3); }
-        #map { flex: 1; height: 100%; }
-
-        /* 視圖切換區 */
-        .view-section { flex: 1; display: none; flex-direction: column; overflow: hidden; }
-        .view-section.active { display: flex; }
-
-        /* 行程卡片 */
-        #itinerary-content { flex: 1; overflow-y: auto; padding: 15px; }
-        .day-column { margin-bottom: 20px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; }
-        .day-header { font-weight: bold; color: var(--accent); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        
-        .place-card {
-            background: #2d3748; padding: 12px; margin-bottom: 8px; border-radius: 6px;
-            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-            border-left: 4px solid #ccc; font-size: 0.95rem; transition: transform 0.1s, background 0.2s;
+        :root { 
+            --bg: #0f172a; --panel: #1e293b; --accent: #38bdf8; --text: #f1f5f9; 
+            --danger: #ef4444; --success: #22c55e; --transport: #fbbf24;
         }
-        .place-card:hover { background: #374151; transform: translateX(2px); }
-        .place-info { display: flex; flex-direction: column; gap: 4px; pointer-events: none; } /* 讓點擊穿透到 card */
-        .cat-tag { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: #fff; width: fit-content; }
-        .place-coords { font-size: 0.75rem; color: #94a3b8; }
-
-        /* 記帳列表 */
-        #budget-content { flex: 1; overflow-y: auto; padding: 15px; }
-        .expense-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #334155; }
-        .expense-info { display: flex; flex-direction: column; }
-        .expense-amount { font-weight: bold; color: var(--success); font-family: monospace; font-size: 1.1em; }
-        .budget-summary { padding: 15px; background: #0f172a; border-top: 1px solid #334155; font-size: 1.1rem; display: flex; justify-content: space-between; font-weight: bold; }
-
-        /* 按鈕樣式 */
-        .btn-action { background: #334155; border: none; color: #fff; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
-        .btn-action:hover { background: #475569; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100vh; display: flex; overflow: hidden; }
+        
+        /* 共用按鈕 */
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--accent); color: #0f172a; }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-outline { background: transparent; border: 1px solid #334155; color: #94a3b8; }
         .btn-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
         .btn-danger:hover { background: var(--danger); color: white; }
-        .btn-primary { background: var(--accent); color: #000; font-weight: bold; width: 100%; padding: 10px; margin-top: 10px; }
 
-        /* 搜尋輸入框 */
-        .search-box { padding: 15px; border-bottom: 1px solid #334155; background: #1e293b; }
-        .input-group { display: flex; gap: 8px; margin-bottom: 8px; }
-        input, select { flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 4px; }
+        /* --- 畫面 1: 旅程大廳 (Lobby) --- */
+        #view-lobby { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; padding-top: 50px; }
+        .trip-card { background: var(--panel); width: 300px; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #334155; cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .trip-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .lobby-header { text-align: center; margin-bottom: 30px; }
+
+        /* --- 畫面 2: 行程編輯器 (Main) --- */
+        #view-editor { display: none; width: 100%; height: 100%; }
         
-        /* 登入遮罩 */
-        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .login-box { text-align: center; padding: 40px; background: var(--panel); border-radius: 12px; border: 1px solid #334155; width: 300px; }
+        /* 左側面板 */
+        #sidebar { width: 420px; background: var(--panel); border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 1000; box-shadow: 4px 0 15px rgba(0,0,0,0.3); }
+        
+        /* 頂部導航 */
+        .navbar { padding: 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; background: #020617; }
+        .back-btn { font-size: 0.9rem; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .back-btn:hover { color: var(--text); }
 
-        /* 分類顏色定義 */
-        .cat-hotel { border-color: #818cf8; } .tag-hotel { background: #818cf8; }
-        .cat-food { border-color: #fb923c; } .tag-food { background: #fb923c; }
-        .cat-transport { border-color: #38bdf8; } .tag-transport { background: #38bdf8; }
-        .cat-sight { border-color: #4ade80; } .tag-sight { background: #4ade80; }
-        .cat-shopping { border-color: #f472b6; } .tag-shopping { background: #f472b6; }
-        .cat-other { border-color: #94a3b8; } .tag-other { background: #94a3b8; }
+        /* 分頁按鈕 */
+        .tabs { display: flex; background: #0f172a; border-bottom: 1px solid #334155; }
+        .tab-btn { flex: 1; padding: 12px; background: transparent; color: #64748b; border: none; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: #1e293b; }
+
+        /* 內容區 */
+        .content-area { flex: 1; overflow-y: auto; padding: 0; position: relative; }
+        .section { display: none; padding: 15px; }
+        .section.active { display: block; }
+
+        /* --- 垂直時間軸樣式 (Timeline) --- */
+        .day-container { margin-bottom: 30px; }
+        .day-header { 
+            position: sticky; top: 0; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(5px);
+            padding: 10px 15px; border-radius: 8px; border: 1px solid var(--accent); 
+            color: var(--accent); font-weight: bold; z-index: 10; margin-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .timeline { position: relative; padding-left: 20px; margin-left: 10px; border-left: 2px solid #334155; }
+        
+        .timeline-item { 
+            position: relative; margin-bottom: 15px; padding: 12px; 
+            background: #2d3748; border-radius: 8px; border: 1px solid #475569;
+            transition: 0.2s; cursor: grab;
+        }
+        .timeline-item:hover { border-color: #64748b; }
+        
+        /* 時間軸上的小圓點 */
+        .timeline-dot {
+            position: absolute; left: -27px; top: 15px;
+            width: 12px; height: 12px; border-radius: 50%;
+            background: var(--panel); border: 2px solid #64748b;
+        }
+        
+        /* 交通卡片樣式 (特殊) */
+        .item-transport { 
+            background: #2a2a2a; border: 1px dashed var(--transport); 
+            margin: 10px 0; font-size: 0.9rem; color: #fbbf24;
+        }
+        .item-transport .timeline-dot { border-color: var(--transport); background: var(--transport); }
+        .item-transport::before { content: '🚗'; position: absolute; left: -30px; top: 10px; font-size: 14px; background:var(--bg); }
+
+        .time-badge { 
+            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; 
+            background: #0f172a; padding: 2px 6px; border-radius: 4px; border: 1px solid #334155; margin-right: 8px;
+        }
+
+        /* 編輯表單 */
+        .edit-form { background: #1e293b; padding: 15px; border-bottom: 1px solid #334155; }
+        .form-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        input, select { flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 4px; }
+
+        /* 地圖 */
+        #map { flex: 1; height: 100%; }
+
+        /* 記帳 */
+        .budget-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #334155; }
+        .amount { color: var(--success); font-family: monospace; font-weight: bold; }
+
     </style>
 </head>
 <body>
 
-    <div id="login-overlay">
-        <div class="login-box">
-            <h1 style="color:var(--accent)">TRAVEL ARCHITECT v2</h1>
-            <p style="color:#94a3b8; margin-bottom: 20px;">協作行程 & 記帳系統</p>
-            <button id="btn-login" class="btn-primary" style="background:#fff; color:#333"><i class="fab fa-google"></i> Google 登入</button>
-            <div style="margin-top: 20px; border-top: 1px solid #334155; padding-top: 15px;">
-                <input type="text" id="trip-code-input" placeholder="輸入旅程代碼 (選填)">
-                <button id="btn-join" class="btn-action" style="width:100%; margin-top:5px">加入旅程</button>
+    <div id="view-lobby">
+        <div class="lobby-header">
+            <h1 style="color:var(--accent); font-size: 2rem; margin:0;">TRAVEL ARCHITECT</h1>
+            <p style="color:#64748b;">多人協作行程規劃 v3.0</p>
+            <div id="user-info" style="margin-top:20px; font-size:0.9rem;">
+                <img id="user-avatar" src="" style="width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:10px;">
+                <span id="user-name">Guest</span>
+                <button onclick="logout()" class="btn btn-outline" style="margin-left:15px; padding:4px 8px; font-size:0.8rem;">登出</button>
             </div>
+        </div>
+
+        <div style="width: 300px; margin-bottom: 20px;">
+            <button onclick="createNewTrip()" class="btn btn-primary" style="width:100%; margin-bottom:10px;">+ 建立新旅程</button>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="join-code" placeholder="輸入邀請碼 (ID)">
+                <button onclick="joinTrip()" class="btn btn-outline">加入</button>
+            </div>
+        </div>
+
+        <h3 style="color:#94a3b8; font-size:0.9rem; margin-bottom:10px; width:300px; text-align:left;">我的旅程</h3>
+        <div id="trip-list">
+            <div style="text-align:center; color:#475569;">載入中...</div>
         </div>
     </div>
 
-    <div id="sidebar">
-        <div style="padding: 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <div id="trip-name" style="font-weight:bold; color:var(--accent)">My Trip</div>
-                <div id="trip-id-display" style="font-size:0.8em; color:#64748b; cursor:pointer;" onclick="copyTripId()">ID: Loading...</div>
-            </div>
-            <button onclick="logout()" class="btn-action">登出</button>
-        </div>
-
-        <div class="sidebar-tabs">
-            <button class="tab-btn active" onclick="switchTab('itinerary')"><i class="fas fa-map-marked-alt"></i> 行程</button>
-            <button class="tab-btn" onclick="switchTab('budget')"><i class="fas fa-file-invoice-dollar"></i> 記帳</button>
-        </div>
-
-        <div id="view-itinerary" class="view-section active">
-            <div class="search-box">
-                <div style="font-size:0.9em; margin-bottom:5px; color:#aaa">新增行程 (輸入名稱搜尋或直接新增)</div>
-                <div class="input-group">
-                    <input type="text" id="input-place-name" placeholder="例如: 東京鐵塔">
-                    <button class="btn-action" onclick="searchAndAdd()">搜尋並新增</button>
-                </div>
-                <div class="input-group">
-                    <select id="input-category">
-                        <option value="sight">🌲 景點</option>
-                        <option value="food">🍜 美食</option>
-                        <option value="shopping">🛍️ 逛街</option>
-                        <option value="hotel">🏨 住宿</option>
-                        <option value="transport">🚅 交通</option>
-                        <option value="other">✨ 其他</option>
-                    </select>
-                    <button class="btn-action" style="background:#475569" onclick="manualAdd()">純文字新增</button>
-                </div>
-            </div>
-            
-            <div id="itinerary-content">
-                </div>
-            <div style="padding:10px">
-                <button class="btn-action" style="width:100%" onclick="addDay()">+ 新增一天</button>
-            </div>
-        </div>
-
-        <div id="view-budget" class="view-section">
-            <div class="search-box">
-                <div style="font-size:0.9em; margin-bottom:5px; color:#aaa">新增支出</div>
-                <div class="input-group">
-                    <input type="text" id="expense-item" placeholder="項目 (如: 晚餐)">
-                    <input type="number" id="expense-amount" placeholder="金額" style="width:80px">
-                </div>
-                <div class="input-group">
-                    <select id="expense-category">
-                        <option value="food">🍜 餐飲</option>
-                        <option value="transport">🚅 交通</option>
-                        <option value="shopping">🛍️ 購物</option>
-                        <option value="hotel">🏨 住宿</option>
-                        <option value="ticket">🎫 門票</option>
-                        <option value="other">💸 雜支</option>
-                    </select>
-                    <button class="btn-primary" onclick="addExpense()">記一筆</button>
+    <div id="view-editor">
+        <div id="sidebar">
+            <div class="navbar">
+                <div class="back-btn" onclick="backToLobby()"><i class="fas fa-chevron-left"></i> 返回大廳</div>
+                <div style="text-align:right;">
+                    <div id="trip-title" style="font-weight:bold; color:var(--text);">東京之旅</div>
+                    <div id="trip-id-display" onclick="copyTripId()" style="font-size:0.7em; color:var(--accent); cursor:pointer;">ID: LOADING</div>
                 </div>
             </div>
 
-            <div id="budget-content">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('itinerary')">📅 行程表</button>
+                <button class="tab-btn" onclick="switchTab('budget')">💰 記帳</button>
+            </div>
+
+            <div id="tab-itinerary" class="content-area section active">
+                <div class="edit-form">
+                    <div style="color:#94a3b8; font-size:0.8rem; margin-bottom:5px;">新增項目</div>
+                    <div class="form-row">
+                        <select id="new-type" onchange="toggleTransportField()" style="flex:0.4;">
+                            <option value="place">📍 地點</option>
+                            <option value="transport">🚗 交通</option>
+                        </select>
+                        <input type="text" id="new-name" placeholder="名稱 (例: 清水寺)">
+                    </div>
+                    
+                    <div class="form-row" id="row-place">
+                        <input type="time" id="new-time">
+                        <button class="btn btn-outline" onclick="searchPlace()" title="搜尋座標"><i class="fas fa-search-location"></i></button>
+                    </div>
+
+                    <div class="form-row" id="row-transport" style="display:none;">
+                        <input type="text" id="new-duration" placeholder="耗時 (例: 30分鐘)">
+                    </div>
+
+                    <button class="btn btn-primary" style="width:100%" onclick="addItem()">加入行程</button>
                 </div>
-            
-            <div class="budget-summary">
-                <span>總支出:</span>
-                <span style="color:var(--accent)" id="total-expense">0</span>
+
+                <div id="timeline-container" style="padding:15px;">
+                    </div>
+                
+                <div style="padding:15px; text-align:center;">
+                    <button class="btn btn-outline" style="width:100%" onclick="addDay()">+ 新增一天</button>
+                </div>
+            </div>
+
+            <div id="tab-budget" class="content-area section">
+                <div class="edit-form">
+                    <div class="form-row">
+                        <input type="text" id="exp-name" placeholder="項目">
+                        <input type="number" id="exp-amount" placeholder="金額">
+                    </div>
+                    <div class="form-row">
+                        <select id="exp-cat">
+                            <option value="food">🍜 食物</option>
+                            <option value="trans">🚗 交通</option>
+                            <option value="stay">🏨 住宿</option>
+                            <option value="shop">🛍️ 購物</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="addExpense()">記帳</button>
+                    </div>
+                </div>
+                <div id="budget-list"></div>
+                <div style="padding:15px; border-top:1px solid #334155; display:flex; justify-content:space-between; font-weight:bold;">
+                    <span>總計</span>
+                    <span id="budget-total" style="color:var(--success)">$0</span>
+                </div>
             </div>
         </div>
+
+        <div id="map"></div>
     </div>
-
-    <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -165,9 +209,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, query, where, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // ✅ 使用你的 Firebase 金鑰
+        // ✅ Firebase Config
         const firebaseConfig = {
           apiKey: "AIzaSyBzNnKXVglsGckbt4YK1MzMUqEapXaMqNw",
           authDomain: "travel-plan-1.firebaseapp.com",
@@ -185,291 +229,392 @@
 
         let currentUser = null;
         let currentTripId = null;
-        let tripData = null; // 本地暫存資料
+        let currentTripData = null;
         let mapMarkers = {};
+        let mapObj = null;
 
-        // --- 地圖初始化 ---
-        const map = L.map('map').setView([35.6895, 139.6917], 10); // 預設東京
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
+        // --- 初始化地圖 ---
+        function initMap() {
+            if(mapObj) return;
+            mapObj = L.map('map').setView([35.689, 139.692], 12);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(mapObj);
+        }
 
-        // --- 登入邏輯 ---
-        const loginOverlay = document.getElementById('login-overlay');
-        
-        document.getElementById('btn-login').addEventListener('click', () => signInWithPopup(auth, provider));
-        document.getElementById('btn-join').addEventListener('click', () => signInWithPopup(auth, provider));
-
+        // --- Auth 監聽 ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
-                const codeInput = document.getElementById('trip-code-input').value;
-                if(codeInput) loadTrip(codeInput);
-                else {
-                    const lastTrip = localStorage.getItem('lastTripId');
-                    if(lastTrip) loadTrip(lastTrip);
-                    else createNewTrip();
-                }
-                loginOverlay.style.display = 'none';
+                document.getElementById('user-name').innerText = user.displayName;
+                document.getElementById('user-avatar').src = user.photoURL;
+                loadLobby(); // 登入後載入大廳
             } else {
-                loginOverlay.style.display = 'flex';
+                signInWithPopup(auth, provider);
             }
         });
 
-        window.logout = () => {
-            localStorage.removeItem('lastTripId');
-            signOut(auth);
-        };
+        window.logout = () => signOut(auth);
 
-        // --- Firestore 核心 ---
-        async function createNewTrip() {
-            const newTripId = 'TRIP-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-            const tripRef = doc(db, "trips", newTripId);
-            const initialData = {
-                name: "我的新旅程",
-                days: [ { id: 'day1', title: 'Day 1', items: [] } ],
-                expenses: [] // 新增記帳欄位
-            };
-            await setDoc(tripRef, initialData);
-            loadTrip(newTripId);
+        // =======================
+        // 1. 大廳邏輯 (Lobby)
+        // =======================
+
+        async function loadLobby() {
+            document.getElementById('view-lobby').style.display = 'flex';
+            document.getElementById('view-editor').style.display = 'none';
+            
+            // 查詢我參與的旅程
+            // 注意：這需要 Firestore Index，如果報錯請看 Console 點連結建立索引
+            // 簡單起見，這裡先用 "members array-contains uid"
+            const q = query(collection(db, "trips"), where("members", "array-contains", currentUser.uid));
+            
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('trip-list');
+                list.innerHTML = '';
+                
+                if(snapshot.empty) {
+                    list.innerHTML = '<div style="color:#64748b; margin-top:20px;">尚無旅程，請建立或加入</div>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const div = document.createElement('div');
+                    div.className = 'trip-card';
+                    div.innerHTML = `
+                        <div>
+                            <div style="font-weight:bold; font-size:1.1rem;">${data.name}</div>
+                            <div style="font-size:0.8rem; color:#64748b;">${data.days ? data.days.length : 0} 天 • ${data.members.length} 人</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color:#64748b;"></i>
+                    `;
+                    div.onclick = () => enterTrip(doc.id);
+                    list.appendChild(div);
+                });
+            });
         }
 
-        function loadTrip(tripId) {
+        window.createNewTrip = async () => {
+            const name = prompt("請輸入旅程名稱 (例如: 大阪五日遊)");
+            if(!name) return;
+            
+            const newId = 'TRIP-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+            const tripRef = doc(db, "trips", newId);
+            
+            await setDoc(tripRef, {
+                name: name,
+                members: [currentUser.uid],
+                days: [ { id: 'day1', title: 'Day 1', items: [] } ],
+                expenses: []
+            });
+        };
+
+        window.joinTrip = async () => {
+            const code = document.getElementById('join-code').value;
+            if(!code) return alert("請輸入代碼");
+            
+            const tripRef = doc(db, "trips", code);
+            const docSnap = await getDoc(tripRef);
+            
+            if(docSnap.exists()) {
+                await updateDoc(tripRef, {
+                    members: arrayUnion(currentUser.uid)
+                });
+                enterTrip(code);
+            } else {
+                alert("找不到此旅程");
+            }
+        };
+
+        // =======================
+        // 2. 編輯器邏輯 (Editor)
+        // =======================
+
+        function enterTrip(tripId) {
             currentTripId = tripId;
-            localStorage.setItem('lastTripId', tripId);
+            document.getElementById('view-lobby').style.display = 'none';
+            document.getElementById('view-editor').style.display = 'flex';
+            
+            initMap();
+            mapObj.invalidateSize(); // 修正地圖載入大小
+
             document.getElementById('trip-id-display').innerText = `ID: ${tripId}`;
 
-            // 即時監聽
+            // 即時監聽單一旅程
             onSnapshot(doc(db, "trips", tripId), (docSnap) => {
-                if (docSnap.exists()) {
-                    tripData = docSnap.data();
-                    document.getElementById('trip-name').innerText = tripData.name;
-                    renderItinerary();
-                    renderBudget(); // 同步渲染記帳
+                if(docSnap.exists()) {
+                    currentTripData = docSnap.data();
+                    document.getElementById('trip-title').innerText = currentTripData.name;
+                    renderTimeline();
+                    renderBudget();
                 }
             });
         }
 
-        // --- 功能 1: 搜尋並新增 (Search & Add) ---
-        window.searchAndAdd = async () => {
-            const name = document.getElementById('input-place-name').value;
-            if(!name) return alert("請輸入地點名稱");
+        window.backToLobby = () => {
+            currentTripId = null;
+            loadLobby();
+        };
 
-            // 使用 OpenStreetMap Nominatim API 找座標
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}`);
-                const data = await res.json();
-                
-                if(data && data.length > 0) {
-                    const place = data[0];
-                    const newItem = {
-                        id: Date.now().toString(), // 唯一 ID
-                        name: name,
-                        lat: parseFloat(place.lat),
-                        lng: parseFloat(place.lon),
-                        category: document.getElementById('input-category').value
-                    };
-                    saveItemToFirebase(newItem);
-                    document.getElementById('input-place-name').value = ''; // 清空
-                } else {
-                    alert("找不到地點，嘗試用「純文字新增」");
-                }
-            } catch(e) {
-                console.error(e);
-                alert("搜尋失敗");
+        // UI 切換
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            // Highlight button
+            const idx = tab === 'itinerary' ? 0 : 1;
+            document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+        };
+
+        window.toggleTransportField = () => {
+            const type = document.getElementById('new-type').value;
+            if(type === 'transport') {
+                document.getElementById('row-place').style.display = 'none';
+                document.getElementById('row-transport').style.display = 'flex';
+                document.getElementById('new-name').placeholder = "交通方式 (例: JR電車)";
+            } else {
+                document.getElementById('row-place').style.display = 'flex';
+                document.getElementById('row-transport').style.display = 'none';
+                document.getElementById('new-name').placeholder = "地點名稱 (例: 清水寺)";
             }
         };
 
-        // --- 功能 2: 純文字新增 (不標點) ---
-        window.manualAdd = () => {
-            const name = document.getElementById('input-place-name').value;
+        // --- 核心：新增行程 (解決刪除 Bug) ---
+        window.addItem = async () => {
+            const type = document.getElementById('new-type').value;
+            const name = document.getElementById('new-name').value;
             if(!name) return alert("請輸入名稱");
-            
+
             const newItem = {
-                id: Date.now().toString(),
+                id: crypto.randomUUID(), // ✅ 使用 UUID，確保刪除準確
+                type: type,
                 name: name,
-                lat: null, // 無座標
-                lng: null,
-                category: document.getElementById('input-category').value
+                time: type === 'place' ? document.getElementById('new-time').value : null,
+                duration: type === 'transport' ? document.getElementById('new-duration').value : null,
+                lat: window.tempLat || null,
+                lng: window.tempLng || null
             };
-            saveItemToFirebase(newItem);
-            document.getElementById('input-place-name').value = '';
+
+            // 預設加到第一天
+            currentTripData.days[0].items.push(newItem);
+            await saveTrip();
+            
+            // 清空輸入
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-time').value = '';
+            document.getElementById('new-duration').value = '';
+            window.tempLat = null;
         };
 
-        async function saveItemToFirebase(item) {
-            // 預設加到第一天
-            tripData.days[0].items.push(item);
-            await updateDoc(doc(db, "trips", currentTripId), { days: tripData.days });
+        // --- 搜尋座標 ---
+        window.searchPlace = async () => {
+            const name = document.getElementById('new-name').value;
+            if(!name) return alert("請先輸入名稱");
             
-            // 如果有座標，飛過去
-            if(item.lat) map.setView([item.lat, item.lng], 13);
-        }
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}`);
+            const data = await res.json();
+            
+            if(data.length > 0) {
+                window.tempLat = data[0].lat;
+                window.tempLng = data[0].lon;
+                mapObj.setView([data[0].lat, data[0].lon], 14);
+                L.marker([data[0].lat, data[0].lon]).addTo(mapObj).bindPopup("暫存位置").openPopup();
+            } else {
+                alert("找不到地點，將以純文字新增");
+            }
+        };
 
-        // --- 渲染行程 (Render Itinerary) ---
-        function renderItinerary() {
-            const container = document.getElementById('itinerary-content');
+        // --- 渲染時間軸 (Vertical Timeline) ---
+        function renderTimeline() {
+            const container = document.getElementById('timeline-container');
             container.innerHTML = '';
             
-            // 清地圖標記
-            Object.values(mapMarkers).forEach(m => map.removeLayer(m));
+            // 清除地圖
+            Object.values(mapMarkers).forEach(m => mapObj.removeLayer(m));
             mapMarkers = {};
 
-            tripData.days.forEach((day, dayIndex) => {
-                const dayEl = document.createElement('div');
-                dayEl.className = 'day-column';
-                dayEl.innerHTML = `<div class="day-header">${day.title} <span style="font-size:0.8em;color:#666">${day.items.length} spots</span></div><div class="sortable-list" id="day-${dayIndex}"></div>`;
+            currentTripData.days.forEach((day, dayIndex) => {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day-container';
                 
-                const listEl = dayEl.querySelector('.sortable-list');
+                // 天數標題 (包含刪除天數功能)
+                dayDiv.innerHTML = `
+                    <div class="day-header">
+                        ${day.title}
+                        <button class="btn btn-danger" style="padding:2px 6px; font-size:0.7em;" onclick="deleteDay(${dayIndex})">✕</button>
+                    </div>
+                    <div class="timeline" id="day-list-${dayIndex}"></div>
+                `;
                 
-                day.items.forEach((item, itemIndex) => {
-                    const card = document.createElement('div');
-                    card.className = `place-card cat-${item.category}`;
-                    // 點擊卡片飛到地圖
-                    card.onclick = (e) => {
-                        if(item.lat && !e.target.classList.contains('btn-action')) {
-                            map.flyTo([item.lat, item.lng], 15);
-                            if(mapMarkers[item.id]) mapMarkers[item.id].openPopup();
+                const listEl = dayDiv.querySelector('.timeline');
+
+                day.items.forEach((item) => {
+                    const el = document.createElement('div');
+                    
+                    if(item.type === 'transport') {
+                        // 交通樣式
+                        el.className = 'timeline-item item-transport';
+                        el.innerHTML = `
+                            <div class="timeline-dot"></div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span>${item.name} (${item.duration || '未設定'})</span>
+                                <button class="btn btn-outline" style="border:none; color:#666;" onclick="deleteItem('${day.id}', '${item.id}')">✕</button>
+                            </div>
+                        `;
+                    } else {
+                        // 景點樣式
+                        el.className = 'timeline-item';
+                        el.innerHTML = `
+                            <div class="timeline-dot"></div>
+                            <div style="display:flex; justify-content:space-between; align-items:start;">
+                                <div>
+                                    ${item.time ? `<span class="time-badge">${item.time}</span>` : ''}
+                                    <span style="font-weight:bold;">${item.name}</span>
+                                </div>
+                                <button class="btn btn-outline" style="border:none; color:#666;" onclick="deleteItem('${day.id}', '${item.id}')">✕</button>
+                            </div>
+                        `;
+                        
+                        // 地圖標記
+                        if(item.lat) {
+                            el.onclick = (e) => {
+                                if(e.target.tagName !== 'BUTTON') {
+                                    mapObj.setView([item.lat, item.lng], 15);
+                                    mapMarkers[item.id].openPopup();
+                                }
+                            };
+                            const marker = L.marker([item.lat, item.lng]).addTo(mapObj).bindPopup(item.name);
+                            mapMarkers[item.id] = marker;
                         }
-                    };
-
-                    card.innerHTML = `
-                        <div class="place-info">
-                            <span style="font-weight:bold">${item.name}</span>
-                            <span class="cat-tag tag-${item.category}">${getCatName(item.category)}</span>
-                            ${item.lat ? '' : '<span style="font-size:0.7em;color:#666">(純文字)</span>'}
-                        </div>
-                        <button class="btn-action btn-danger" onclick="deleteItem(${dayIndex}, ${itemIndex})"><i class="fas fa-trash"></i></button>
-                    `;
-                    listEl.appendChild(card);
-
-                    // 加地圖標記
-                    if(item.lat) {
-                        const marker = L.marker([item.lat, item.lng]).addTo(map).bindPopup(item.name);
-                        mapMarkers[item.id] = marker;
                     }
+                    // 綁定 ID 方便拖拉查找
+                    el.dataset.itemId = item.id;
+                    listEl.appendChild(el);
                 });
-                
-                // 綁定拖拉
+
+                // 綁定拖拉 (Drag & Drop)
                 new Sortable(listEl, {
                     group: 'shared',
                     animation: 150,
                     onEnd: (evt) => handleSort(evt)
                 });
 
-                container.appendChild(dayEl);
+                container.appendChild(dayDiv);
             });
         }
 
-        // --- 處理拖拉排序 ---
-        async function handleSort(evt) {
-            // 這邊簡化處理：因為拖拉後 DOM 變了，我們需要重新根據 DOM 結構更新 Firebase 資料
-            // 由於邏輯較複雜，這裡暫時使用 "重新讀取 DOM -> 寫入 DB" 的方式
-            // 為了避免資料遺失，建議在真實產品中使用 ID 查找。
-            // 這裡為了演示穩定性，拖拉功能僅限 UI 效果，若要寫入 DB 需實作完整 ID 映射。
-            // 簡單版：提示使用者
-            // console.log("排序功能已觸發，請實作完整 ID 索引寫入");
-            
-            // 完整實作邏輯：
-            const newDays = [];
-            document.querySelectorAll('.day-column').forEach((col, dIdx) => {
-                 const items = [];
-                 col.querySelectorAll('.place-card').forEach(card => {
-                     // 這裡需要從 UI 反推 item data，這就是為什麼之前會複雜
-                     // 最好的方式是把 item JSON stringify 藏在 data attribute
-                     // 這裡先跳過，確保新增刪除功能正常
-                 });
-            });
-        }
-        
-        // --- 刪除行程 ---
-        window.deleteItem = async (dayIdx, itemIdx) => {
+        // --- 核心：刪除功能 (ID Fix) ---
+        window.deleteItem = async (dayId, itemId) => {
             if(!confirm("確定刪除？")) return;
-            tripData.days[dayIdx].items.splice(itemIdx, 1);
-            await updateDoc(doc(db, "trips", currentTripId), { days: tripData.days });
+            
+            // 找到對應的天
+            const day = currentTripData.days.find(d => d.id === dayId);
+            if(day) {
+                // 用 filter 過濾掉該 ID，確保不會刪錯
+                day.items = day.items.filter(i => i.id !== itemId);
+                await saveTrip();
+            }
         };
 
-        // --- 功能 3: 記帳系統 (Expense Tracker) ---
-        window.addExpense = async () => {
-            const item = document.getElementById('expense-item').value;
-            const amount = parseFloat(document.getElementById('expense-amount').value);
-            const cat = document.getElementById('expense-category').value;
-            
-            if(!item || !amount) return alert("請輸入項目與金額");
+        window.deleteDay = async (dayIndex) => {
+            if(!confirm("確定刪除整天行程？")) return;
+            currentTripData.days.splice(dayIndex, 1);
+            await saveTrip();
+        };
 
-            const newExp = {
-                id: Date.now(),
-                item: item,
-                amount: amount,
-                category: cat,
-                user: currentUser.displayName
-            };
+        window.addDay = async () => {
+            const newId = 'day-' + Date.now();
+            currentTripData.days.push({ id: newId, title: `Day ${currentTripData.days.length + 1}`, items: [] });
+            await saveTrip();
+        };
+
+        // --- 拖拉排序後處理 ---
+        async function handleSort(evt) {
+            // 從 DOM 重組資料 (最穩定的方式)
+            const newDays = [];
             
-            // 寫入 Firebase
-            const expenses = tripData.expenses || [];
-            expenses.push(newExp);
-            await updateDoc(doc(db, "trips", currentTripId), { expenses: expenses });
+            // 遍歷每一天的 DOM
+            document.querySelectorAll('.day-container').forEach((dayContainer, dIdx) => {
+                const oldDayData = currentTripData.days[dIdx]; // 保持原本的天數 ID 和標題
+                const newItems = [];
+                
+                // 遍歷該天裡面的所有 item DOM
+                dayContainer.querySelectorAll('.timeline-item').forEach(el => {
+                    const itemId = el.dataset.itemId;
+                    // 從原本的整個資料池裡找這個 item (可能從別天被拖過來)
+                    let foundItem = null;
+                    currentTripData.days.forEach(d => {
+                        const match = d.items.find(i => i.id === itemId);
+                        if(match) foundItem = match;
+                    });
+                    if(foundItem) newItems.push(foundItem);
+                });
+                
+                newDays.push({ ...oldDayData, items: newItems });
+            });
             
-            // 清空
-            document.getElementById('expense-item').value = '';
-            document.getElementById('expense-amount').value = '';
+            currentTripData.days = newDays;
+            await saveTrip();
+        }
+
+        async function saveTrip() {
+            await updateDoc(doc(db, "trips", currentTripId), { 
+                days: currentTripData.days,
+                expenses: currentTripData.expenses || []
+            });
+        }
+
+        // --- 記帳功能 ---
+        window.addExpense = async () => {
+            const name = document.getElementById('exp-name').value;
+            const amount = document.getElementById('exp-amount').value;
+            const cat = document.getElementById('exp-cat').value;
+            if(!name || !amount) return;
+
+            const newExp = { name, amount: parseInt(amount), cat, user: currentUser.displayName };
+            if(!currentTripData.expenses) currentTripData.expenses = [];
+            
+            currentTripData.expenses.push(newExp);
+            await saveTrip();
+            
+            document.getElementById('exp-name').value = '';
+            document.getElementById('exp-amount').value = '';
         };
 
         function renderBudget() {
-            const list = document.getElementById('budget-content');
+            const list = document.getElementById('budget-list');
             list.innerHTML = '';
             let total = 0;
-            const expenses = tripData.expenses || [];
-
-            expenses.forEach((exp, idx) => {
+            const exps = currentTripData.expenses || [];
+            
+            exps.forEach((exp, idx) => {
                 total += exp.amount;
                 const div = document.createElement('div');
-                div.className = 'expense-item';
+                div.className = 'budget-row';
                 div.innerHTML = `
-                    <div class="expense-info">
-                        <span style="font-weight:bold">${exp.item} <span class="cat-tag tag-${exp.category}">${getCatName(exp.category)}</span></span>
-                        <span style="font-size:0.8em; color:#64748b">付費者: ${exp.user}</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:10px">
-                        <span class="expense-amount">$${exp.amount}</span>
-                        <button class="btn-action btn-danger" onclick="deleteExpense(${idx})">✕</button>
+                    <div>${exp.name} <span style="font-size:0.8em; color:#666;">(${exp.user})</span></div>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <span class="amount">$${exp.amount}</span>
+                        <button onclick="delExpense(${idx})" style="border:none; background:transparent; color:#666; cursor:pointer;">✕</button>
                     </div>
                 `;
                 list.appendChild(div);
             });
-            document.getElementById('total-expense').innerText = `$${total}`;
+            document.getElementById('budget-total').innerText = '$' + total;
         }
 
-        window.deleteExpense = async (idx) => {
-            if(!confirm("刪除這筆帳？")) return;
-            tripData.expenses.splice(idx, 1);
-            await updateDoc(doc(db, "trips", currentTripId), { expenses: tripData.expenses });
-        };
-
-        // --- 輔助函式 ---
-        window.switchTab = (tab) => {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById(`view-${tab}`).classList.add('active');
-            // 找出對應按鈕加 active (這裡偷懶用 DOM 順序)
-            if(tab === 'itinerary') document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-            else document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-        };
-
-        window.addDay = async () => {
-            tripData.days.push({ id: Date.now(), title: `Day ${tripData.days.length+1}`, items: [] });
-            await updateDoc(doc(db, "trips", currentTripId), { days: tripData.days });
+        window.delExpense = async (idx) => {
+            if(!confirm("刪除？")) return;
+            currentTripData.expenses.splice(idx, 1);
+            await saveTrip();
         };
 
         window.copyTripId = () => {
             navigator.clipboard.writeText(currentTripId);
-            alert("已複製 ID: " + currentTripId);
+            alert("已複製旅程 ID，傳給朋友加入: " + currentTripId);
         };
-
-        function getCatName(cat) {
-            const map = { sight: '景點', food: '美食', shopping: '逛街', hotel: '住宿', transport: '交通', other: '其他', ticket: '門票' };
-            return map[cat] || cat;
-        }
 
     </script>
 </body>
